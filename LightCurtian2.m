@@ -3,7 +3,7 @@
 close all;
 clear all;
 
-axis([-2.5,2.5,-2.5,2.5,0,2.5])
+axis([-3,2.2,-3.5,3.5,0,4])
 
 hold on 
 
@@ -60,6 +60,16 @@ shelf = PlaceObject('Shelf3.ply',[-1,0,0.05]);
 verts = [get(shelf,'Vertices'), ones(size(get(shelf,'Vertices'),1),1)] * trotz(pi);
 set(shelf,'Vertices',verts(:,1:3))
 
+% Placing environment
+env = PlaceObject('env2.ply',[-2.5,-1.5,-0.3]);
+verts1 = [get(env,'Vertices'), ones(size(get(env,'Vertices'),1),1)] * trotz(pi);
+set(env,'Vertices',verts1(:,1:3))
+
+% Placing emergency stop
+stop = PlaceObject('PaintedStop.ply',[-1.9,3,1]);
+
+% Placing fire extinguisher
+fire = PlaceObject('PaintedExtinguisher.ply',[-2.5,3,0]);
 
 % Bag
 [f,v,data] = plyread('bag.ply','tri');
@@ -149,9 +159,8 @@ humanPose = makehgtform('translate',[0.5,2,0.6]);
 
 
 % Placing flooring
-surf([-2.5,-2.5;2.5,2.5],[-2.5,2.5;-2.5,2.5],[0.01,0.01;0.01,0.01] ...
+surf([-3.5,-3.5;3.5,3.5],[-3.5,3.5;-3.5,3.5],[0.01,0.01;0.01,0.01] ...
 ,'CData',imread('oakfloorhd.jpg'),'FaceColor','texturemap');
-
 
 
 view(3);
@@ -177,25 +186,13 @@ movBkHuman = makehgtform('translate',[0,0.04,0]);
 
 % differance between human move and robot start back up need this for
 % smooth animation
-diff = 11;
-counter = 0;
+diff = 0;
 
-for i = 1:steps+diff
 
-    % animate robot trajectory
-    if i < 40
-        Gofa10.animate(robTraj1(i,:));
-        leftG.base = Gofa10.fkine(Gofa10.getpos()).T * transl(0,0,0.1) * trotx(pi/2);
-        leftG.plot(zeros(1,3));
-        rightG.base = Gofa10.fkine(Gofa10.getpos()).T * transl(0,0,0.1) * trotx(pi/2);
-        rightG.plot(zeros(1,3));
-        robq = Gofa10.getpos();
-        disp("GO")
-        drawnow();
-    end
+for i = 1:steps
     
     % move human
-    if i < 40
+    if i < 35
         humanPose = humanPose * movFwHuman;
         updHuman = [humanPose * [humanVerts,ones(humanVertexCount,1)]']';
         human.Vertices = updHuman(:,1:3);
@@ -203,22 +200,22 @@ for i = 1:steps+diff
     end
     
     % if human is in light curtian range stop movment
-    if (abs(humanPose(2,4)-1.22) < 0.05)
+    if (abs(humanPose(2,4)-1.3) < 0.05)
         Gofa10.plot(robq)
         disp("STOP")
+        diff = 7;
     end
     
     % moving human away from light curtian
-    if (i > 45) && (i < 55)
+    if (i > 40) && (i < 50)
         humanPose = humanPose * movBkHuman;
         updHuman = [humanPose * [humanVerts,ones(humanVertexCount,1)]']';
         human.Vertices = updHuman(:,1:3);
         drawnow();  
     end
-
-    % if in the latter half of the for loop and out of the range of the
-    % sensor then complete trajectory
-    if i > 50 && ((abs(humanPose(2,4)-1.22) > 0.05))
+    
+    % if out of the range of the sensor then complete trajectory
+    if ((abs(humanPose(2,4)-1.3) > 0.05))
         disp("GO")
         Gofa10.animate(robTraj1(i-diff,:));
         leftG.base = Gofa10.fkine(Gofa10.getpos()).T * transl(0,0,0.1) * trotx(pi/2);
