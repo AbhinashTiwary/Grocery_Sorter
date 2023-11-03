@@ -1,11 +1,11 @@
-%GoFa10 Demo
-
 close all;
 clear all;
 
-axis([-2.5,2.5,-2.5,2.5,0,2.5])
+
+axis([-3,2.2,-3.5,3.5,0,4])
 
 hold on 
+
 
 m = DobotMagician
 
@@ -55,23 +55,33 @@ rightG.plot(q);
 drawnow();
 
 
+% Placing environment
+env = PlaceObject('env2.ply',[-2.5,-1.5,-0.3]);
+verts1 = [get(env,'Vertices'), ones(size(get(env,'Vertices'),1),1)] * trotz(pi);
+set(env,'Vertices',verts1(:,1:3))
+
 % Placing shelf
 shelf = PlaceObject('Shelf3.ply',[-1,0,0.05]);
 verts = [get(shelf,'Vertices'), ones(size(get(shelf,'Vertices'),1),1)] * trotz(pi);
 set(shelf,'Vertices',verts(:,1:3))
 
+% Placing emergency stop
+stop = PlaceObject('PaintedStop.ply',[-1.9,3,1]);
+
+% Placing fire extinguisher
+fire = PlaceObject('PaintedExtinguisher.ply',[-2.5,3,0]);
+
 
 % Bag
 [f,v,data] = plyread('bag.ply','tri');
 
-% Plots the surfaces of the brick
+% Plots the surfaces of the bag
 bag = trisurf(f,v(:,1),v(:,2), v(:,3));
 
 % Vertex count
 bagVertexCount = size(v,1);
 
-% Remap brick vert matrix so it is the same size as if it where 
-% get(brick,'Vertices')
+% Remap bag vert matrix so it is the same size as if it where 
 midPoint1 = sum(v)/bagVertexCount;
 bagVerts = v - repmat(midPoint1,bagVertexCount,1);
 
@@ -82,17 +92,17 @@ bagPose = bagPose * transl(0,1,0.23) * trotz(pi/2);
 updbag = [bagPose * [bagVerts,ones(bagVertexCount,1)]']';
     bag.Vertices = updbag(:,1:3);
 
+
 % Juice box 1
 [f,v,data] = plyread('Juice_box.ply','tri');
 
-% Plots the surfaces of the brick
+% Plots the surfaces of the box
 box1 = trisurf(f,v(:,1),v(:,2), v(:,3));
 
 % Vertex count
 box1VertexCount = size(v,1);
 
-% Remap brick vert matrix so it is the same size as if it where 
-% get(brick,'Vertices')
+% Remap box vert matrix so it is the same size as if it where 
 midPointbox1 = sum(v)/box1VertexCount;
 box1Verts = v - repmat(midPointbox1,box1VertexCount,1);
 
@@ -107,14 +117,13 @@ updbox1 = [box1Pose * [box1Verts,ones(box1VertexCount,1)]']';
 % Juice box 2
 [f,v,data] = plyread('Juice_box.ply','tri');
 
-% Plots the surfaces of the brick
+% Plots the surfaces of the box
 box2 = trisurf(f,v(:,1),v(:,2), v(:,3));
 
 % Vertex count
 box2VertexCount = size(v,1);
 
-% Remap brick vert matrix so it is the same size as if it where 
-% get(brick,'Vertices')
+% Remap box vert matrix so it is the same size as if it where 
 midPointbox2 = sum(v)/box2VertexCount;
 box2Verts = v - repmat(midPointbox2,box2VertexCount,1);
 
@@ -127,7 +136,7 @@ updbox2 = [box2Pose * [box2Verts,ones(box2VertexCount,1)]']';
 
 
 % Placing flooring
-surf([-2.5,-2.5;2.5,2.5],[-2.5,2.5;-2.5,2.5],[0.01,0.01;0.01,0.01] ...
+surf([-3.5,-3.5;3.5,3.5],[-3.5,3.5;-3.5,3.5],[0.01,0.01;0.01,0.01] ...
 ,'CData',imread('oakfloorhd.jpg'),'FaceColor','texturemap');
 
 
@@ -143,7 +152,7 @@ view(3);
 camlight;
 
 
-steps = 90;
+steps = 130;
 
 % initial robot state
 T1_r = Gofa10.fkine(Gofa10.getpos());
@@ -156,9 +165,9 @@ q2_r = Gofa10.ikcon(T2_r);
 robTraj1 = jtraj(q1_r,q2_r,steps);
 x = [];
 x2nd = [];
-for i = 1:2
-    diff = 0;
-end
+
+diff = 0;
+
 
 button_val = readDigitalPin(a, button_pin);
 button_press = 0;
@@ -184,7 +193,7 @@ if next_state == 0
                 disp("High")
                 rob_state = 1;
             else
-                disp("LOW")
+                disp("Low")
                 rob_state = 0;
                 % this is the second button click
                 next_state = 1;
@@ -198,9 +207,9 @@ if next_state == 0
         if rob_state == 1
             x = [x,i];
             diff = x(end) - x(1);
-            disp("in")
+            disp("Stoped")
         else
-            disp("H")
+            disp("Moving")
             % robot animation at start up as robot state is 0
             Gofa10.animate(robTraj1(i,:));
             leftG.base = Gofa10.fkine(Gofa10.getpos()).T * transl(0,0,0.1) * trotx(pi/2);
@@ -226,7 +235,7 @@ if next_state == 1
     for j = count:count+but_diff
         button_val = readDigitalPin(a, button_pin);
         if rob_state == 0
-            disp("H2")
+            disp("Moving")
 
             % animate rest of the trajectory
             Gofa10.animate(robTraj1(j-diff,:));
